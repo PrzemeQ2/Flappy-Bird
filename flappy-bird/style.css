@@ -1,11 +1,9 @@
-/* Resetujemy domyślne marginesy przeglądarki */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-/* Ustawiamy ciemne tło strony i centrujemy płótno na środku ekranu */
 body {
     background-color: #333;
     display: flex;
@@ -14,7 +12,6 @@ body {
     height: 100vh; /* Zajmuje 100% wysokości okna przeglądarki */
 }
 
-/* Dodajemy lekkie obramowanie, żeby widzieć, gdzie dokładnie jest nasza gra */
 canvas {
     background-color: #70c5ce; /* Kolor nieba jako tymczasowe tło */
     border: 2px solid #000;
