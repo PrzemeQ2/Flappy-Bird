@@ -1,4 +1,4 @@
-import { GameState, Assets } from "./Constants.js";
+import {GameState, Assets, PhysParams, playSound, Sounds} from "./Constants.js";
 
 export class Bird {
     constructor() {
@@ -7,33 +7,35 @@ export class Bird {
         this.width = 34;
         this.height = 24;
         this.velocity = 0;
-        this.gravity = 0.25;
-        this.jumpStrength = -4.5;
+        this.gravity = PhysParams.GRAVITY;
+        this.jumpStrength = PhysParams.JUMP_VELOCITY;
     }
 
     flap(){
         this.velocity = this.jumpStrength;
+        playSound(Sounds.wing);
     }
 
-    update(state, canvasHeight) {
+    update(state, canvasHeight, dt) {
         if (state === GameState.PLAYING) {
-            this.velocity += this.gravity;
-            this.y += this.velocity;
+            this.velocity += this.gravity * dt;
+            this.y += this.velocity * dt;
         } else if (state === GameState.END) {
             if (this.y + this.height < canvasHeight - 112) {
-                this.velocity += this.gravity;
-                this.y += this.velocity;
+                this.velocity += this.gravity * dt;
+                this.y += this.velocity * dt;
             }
         }
     }
 
     draw(ctx) {
+        const ROTATION_FACTOR = 0.00167;
         ctx.save();
         ctx.translate(this.x + this.width/2, this.y + this.height/2);
 
         let rotation = 0;
         if (this.velocity > 0) {
-            rotation = Math.min(Math.PI / 2, this.velocity * 0.1); 
+            rotation = Math.min(Math.PI / 2, this.velocity * ROTATION_FACTOR);
         } else {
             rotation = -25 * Math.PI / 180; 
         }
@@ -43,4 +45,13 @@ export class Bird {
         ctx.restore();
     }
 
+    getHitbox(){
+        const p = PhysParams.BIRD_HITBOX_PADDING;
+        return {
+            x: this.x + p,
+            y: this.y + p,
+            width: this.width - p*2,
+            height: this.height - p*2
+        }
+    }
 }

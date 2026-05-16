@@ -1,20 +1,30 @@
-import { GameState, Assets } from './Constants.js';
+import {GameState, Assets, PhysParams, playSound, Sounds} from './Constants.js';
 import { Bird } from './Bird.js';
 import { PipePair } from './Pipe.js';
+
+function nextPipeY(prevY) {
+    let lower = Math.max(PhysParams.PIPE_Y_MIN, prevY - PhysParams.PIPE_Y_DELTA_MAX);
+    let upper = Math.min(PhysParams.PIPE_Y_MAX, prevY + PhysParams.PIPE_Y_DELTA_MAX);
+    return Math.floor(Math.random() * (upper - lower)) + lower;
+}
 
 export class Game {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
         
-        this.state = GameState.START;
-        this.score = 0;
-        
-        this.bird = new Bird();
-        this.pipes = [];
-        this.pipes.push(new PipePair(this.canvas.width, 0, this.canvas.width));
+        this.resetState()
 
         this.setupInputs();
+    }
+
+    resetState() {
+        this.state = GameState.START;
+        this.score = 0;
+        this.bird = new Bird();
+        this.pipes = [];
+        let firstPipeY = Math.floor(Math.random() * (PhysParams.PIPE_Y_MAX - PhysParams.PIPE_Y_MIN)) + PhysParams.PIPE_Y_MIN ;
+        this.pipes.push(new PipePair(this.canvas.width, firstPipeY, this.canvas.width));
     }
 
     setupInputs() {
@@ -25,41 +35,60 @@ export class Game {
             } else if (this.state === GameState.PLAYING) {
                 this.bird.flap();
             } else if (this.state === GameState.END) {
-                location.reload(); 
+                playSound(Sounds.swoosh);
+                this.resetState();
             }
         };
 
-        window.addEventListener('keydown', 
+        let isTouchDevice = false;
+        window.addEventListener('keydown',
             (e) => {
-                if (e.code === 'Space') flapAction();
-            });
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        flapAction();
+                    }
+                }, {passive: false});
+
         window.addEventListener('mousedown', flapAction);
+
+        window.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            flapAction();
+        });
     }
 
-    update() {
-        this.bird.update(this.state, this.canvas.height);
+    update(dt) {
+        this.bird.update(this.state, this.canvas.height, dt);
 
         if (this.bird.y + this.bird.height >= this.canvas.height - 112) {
+            if (this.state !== GameState.END) {
+                playSound(Sounds.die);
+            }
             this.state = GameState.END;
             this.bird.y = this.canvas.height - 112 - this.bird.height;
         }
 
         if (this.state === GameState.PLAYING) {
             for (let pipe of this.pipes) {
-                pipe.update();
+                pipe.update(dt);
 
                 if (!pipe.passed && pipe.x < this.bird.x) {
                     this.score++;
                     pipe.passed = true;
+                    playSound(Sounds.point);
                 }
 
                 if (pipe.checkCollision(this.bird)) {
+                    if(this.state !== GameState.END){
+                        playSound(Sounds.hit);
+                    }
                     this.state = GameState.END;
                 }
 
-                if (pipe.x === 120) {
-                    let randomY = Math.floor(Math.random() * pipe.height) - pipe.height;
-                    this.pipes.push(new PipePair(this.canvas.width, randomY, this.canvas.width));
+                if (!pipe.spawnedNext && pipe.x <= PhysParams.SPAWN_TRIGGER_X) {
+                    pipe.spawnedNext = true
+                    let randomY = nextPipeY(pipe.y);
+                    this.pipes.push(new PipePair(this.canvas.width, randomY, this.canvas.width))
                 }
             }
 
@@ -104,11 +133,16 @@ export class Game {
     }
 
     startLoop() {
-        const loop = () => {
-            this.update();
+        this.lastTime = 0;
+        const loop = (now) => {
+            let dt = (now - this.lastTime) / 1000;
+            if(!this.lastTime || dt > 0.05) dt = 1/60;
+            this.lastTime = now;
+
+            this.update(dt);
             this.draw();
             requestAnimationFrame(loop);
         };
-        loop();
+        requestAnimationFrame(loop);
     }
 }

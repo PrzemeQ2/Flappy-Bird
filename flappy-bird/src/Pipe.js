@@ -1,4 +1,4 @@
-import { Assets } from "./Constants.js";
+import { Assets, PhysParams } from "./Constants.js";
 
 export class PipePair {
     constructor(x, y, canvasWidth) {
@@ -8,15 +8,16 @@ export class PipePair {
         this.height = 320;
         this.gap = 110;
         this.passed = false;
+        this.spawnedNext = false;
     }
 
-    update() {
-        this.x -= 2;
+    update(dt) {
+        this.x -= PhysParams.PIPE_PACE*dt;
     }
 
     draw(ctx) {
         ctx.save();
-        ctx.translate(this.x + this.width / 2, this.y + this.height);
+        ctx.translate(this.x + this.width/2, this.y + this.height);
         ctx.scale(1, -1);
         ctx.drawImage(Assets.pipe, -this.width / 2, 0, this.width, this.height);
         ctx.restore();
@@ -25,8 +26,9 @@ export class PipePair {
     }
 
     checkCollision(bird) {
-        if (bird.x + bird.width >= this.x && bird.x <= this.x + this.width) {
-            if (bird.y <= this.y + this.height || bird.y + bird.height >= this.y + this.height + this.gap) {
+        const h = bird.getHitbox();
+        if (h.x + h.width >= this.x && h.x <= this.x + this.width) {
+            if (h.y <= this.y + this.height || h.y + h.height >= this.y + this.height + this.gap) {
                 return true;
             }
         }

@@ -9,11 +9,11 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh; /* Zajmuje 100% wysokości okna przeglądarki */
+    height: 100vh; 
 }
 
 canvas {
-    background-color: #70c5ce; /* Kolor nieba jako tymczasowe tło */
+    background-color: #70c5ce;
     border: 2px solid #000;
     box-shadow: 0 0 15px rgba(0,0,0,0.5);
 }

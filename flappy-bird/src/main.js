@@ -1,4 +1,7 @@
 import { Game } from './Game.js';
+import { preloadAssets } from './Constants.js';
 
-const flappyBird = new Game('gameCanvas');
-flappyBird.startLoop();
+preloadAssets().then(() => {
+    const flappyBird = new Game('gameCanvas');
+    flappyBird.startLoop();
+});
