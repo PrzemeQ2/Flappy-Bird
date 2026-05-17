@@ -9,6 +9,11 @@ export class Bird {
         this.velocity = 0;
         this.gravity = PhysParams.GRAVITY;
         this.jumpStrength = PhysParams.JUMP_VELOCITY;
+
+        this.frameSequence = [0,1,2,1];
+        this.frameIndex = 0;
+        this.animationTimer = 0;
+        this.frameDuration = 0.1;
     }
 
     flap(){
@@ -17,6 +22,15 @@ export class Bird {
     }
 
     update(state, canvasHeight, dt) {
+        if(state !== GameState.END) {
+            const animSpeed = this.velocity > 0 ? 0.15 : 0.07;
+            this.animationTimer += dt;
+            if(this.animationTimer >= animSpeed) {
+                this.animationTimer -= animSpeed;
+                this.frameIndex = (this.frameIndex + 1) % this.frameSequence.length;
+            }
+        }
+
         if (state === GameState.PLAYING) {
             this.velocity += this.gravity * dt;
             this.y += this.velocity * dt;
@@ -41,7 +55,8 @@ export class Bird {
         }
         
         ctx.rotate(rotation);
-        ctx.drawImage(Assets.bird, -this.width / 2, -this.height / 2, this.width, this.height);
+        const currentFrame = Assets.birdFrames[this.frameSequence[this.frameIndex]];
+        ctx.drawImage(currentFrame, -this.width / 2, -this.height / 2, this.width, this.height);
         ctx.restore();
     }
 

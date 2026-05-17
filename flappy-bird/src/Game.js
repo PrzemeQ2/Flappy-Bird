@@ -1,4 +1,4 @@
-import {GameState, Assets, PhysParams, playSound, Sounds} from './Constants.js';
+import { GameState, Assets, PhysParams, playSound, Sounds, getHighScore, saveHighScore } from './Constants.js';
 import { Bird } from './Bird.js';
 import { PipePair } from './Pipe.js';
 
@@ -12,9 +12,9 @@ export class Game {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
-        
-        this.resetState()
 
+        this.highScore = getHighScore();
+        this.resetState()
         this.setupInputs();
     }
 
@@ -25,6 +25,7 @@ export class Game {
         this.pipes = [];
         let firstPipeY = Math.floor(Math.random() * (PhysParams.PIPE_Y_MAX - PhysParams.PIPE_Y_MIN)) + PhysParams.PIPE_Y_MIN ;
         this.pipes.push(new PipePair(this.canvas.width, firstPipeY, this.canvas.width));
+        this.baseOffset = 0;
     }
 
     setupInputs() {
@@ -60,9 +61,18 @@ export class Game {
     update(dt) {
         this.bird.update(this.state, this.canvas.height, dt);
 
+        if(this.state !== GameState.END){
+            this.baseOffset -= PhysParams.PIPE_PACE * dt;
+
+            if(this.baseOffset <= -Assets.base.width){
+                this.baseOffset += Assets.base.width;
+            }
+        }
+
         if (this.bird.y + this.bird.height >= this.canvas.height - 112) {
             if (this.state !== GameState.END) {
                 playSound(Sounds.die);
+                this.checkAndSaveHighScore();
             }
             this.state = GameState.END;
             this.bird.y = this.canvas.height - 112 - this.bird.height;
@@ -81,6 +91,7 @@ export class Game {
                 if (pipe.checkCollision(this.bird)) {
                     if(this.state !== GameState.END){
                         playSound(Sounds.hit);
+                        this.checkAndSaveHighScore();
                     }
                     this.state = GameState.END;
                 }
@@ -99,17 +110,13 @@ export class Game {
     }
 
     drawScore() {
-        let scoreStr = this.score.toString();
-        let totalWidth = 0;
-        for (let i = 0; i < scoreStr.length; i++) {
-            totalWidth += Assets.numbers[parseInt(scoreStr[i])].width;
-        }
+        this.drawNumber(this.score, this.canvas.width / 2, 40);
+    }
 
-        let startX = this.canvas.width / 2 - totalWidth / 2;
-        for (let i = 0; i < scoreStr.length; i++) {
-            let img = Assets.numbers[parseInt(scoreStr[i])];
-            this.ctx.drawImage(img, startX, 40);
-            startX += img.width + 2;
+    checkAndSaveHighScore(){
+        if(this.score > this.highScore){
+            this.highScore = this.score;
+            saveHighScore(this.highScore);
         }
     }
 
@@ -120,16 +127,75 @@ export class Game {
         for (let pipe of this.pipes) {
             pipe.draw(this.ctx);
         }
+        if(this.state !== GameState.START){
+            this.bird.draw(this.ctx);
+        }
 
-        this.bird.draw(this.ctx);
-        this.ctx.drawImage(Assets.base, 0, this.canvas.height - 112, this.canvas.width, 112);
-        this.drawScore();
+        const baseY = this.canvas.height - 112;
+        const offset = Math.floor(this.baseOffset);
+        this.ctx.drawImage(Assets.base, offset, baseY);
+        this.ctx.drawImage(Assets.base, offset + Assets.base.width, baseY);
+        if (this.state === GameState.PLAYING) {
+            this.drawScore();
+        }
 
         if (this.state === GameState.END) {
-            let x = this.canvas.width / 2 - Assets.gameOver.width / 2;
-            let y = this.canvas.height / 2 - Assets.gameOver.height / 2;
-            this.ctx.drawImage(Assets.gameOver, x, y);
+            const sbX = (this.canvas.width - Assets.scoreboard.width) / 2;
+            const sbY = 60;
+            this.ctx.drawImage(Assets.scoreboard, sbX, sbY);
+
+            const medal = this.getMedal();
+            if (medal) {
+                const medalX = sbX + 32.5;
+                const medalY = sbY + 112;
+                this.ctx.drawImage(medal, medalX, medalY);
+            }
+
+            const numbersCenterX = sbX + 210;
+            this.drawNumber(this.score,     numbersCenterX, sbY + 105 , 0.5, 'right');
+            this.drawNumber(this.highScore, numbersCenterX, sbY + 145, 0.5, 'right');
         }
+
+
+        if(this.state === GameState.START){
+            let x = this.canvas.width / 2 - Assets.message.width / 2;
+            let y = this.canvas.height / 2 - Assets.message.height / 2 -25;
+            this.ctx.drawImage(Assets.message, x, y);
+        }
+    }
+
+    drawNumber(value, x, y, scale = 1, align = 'center') {
+        const text = value.toString();
+        let totalWidth = 0;
+        for (const ch of text) {
+            totalWidth += Assets.numbers[parseInt(ch)].width * scale;
+        }
+        totalWidth += (text.length - 1) * 2 * scale;
+
+        let startX;
+        if (align === 'center') {
+            startX = x - totalWidth / 2;
+        } else if (align === 'right') {
+            startX = x - totalWidth;
+        } else {
+            startX = x;
+        }
+
+        for (const ch of text) {
+            const img = Assets.numbers[parseInt(ch)];
+            const w = img.width * scale;
+            const h = img.height * scale;
+            this.ctx.drawImage(img, startX, y, w, h);
+            startX += w + 2 * scale;
+        }
+    }
+
+    getMedal(){
+        if(this.score >= 40) return Assets.medalPlatinum;
+        if(this.score >= 30) return Assets.medalGold;
+        if(this.score >= 20) return Assets.medalSilver;
+        if(this.score >= 10) return Assets.medalBronze;
+        return null
     }
 
     startLoop() {

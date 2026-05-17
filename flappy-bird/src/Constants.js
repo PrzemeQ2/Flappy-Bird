@@ -7,10 +7,16 @@ export const GameState = Object.freeze({
 export const Assets = {
     bg: new Image(),
     base: new Image(),
-    bird: new Image(),
+    birdFrames: [new Image(), new Image(), new Image()],   // ← teraz lista
     pipe: new Image(),
-    gameOver: new Image(),
-    numbers: []
+    message: new Image(),
+    numbers: [],
+    scoreboard: new Image(),
+    medalBronze: new Image(),
+    medalSilver: new Image(),
+    medalGold: new Image(),
+    medalPlatinum: new Image(),
+    replay: new Image(),
 };
 
 export const PhysParams = {
@@ -26,9 +32,17 @@ export const PhysParams = {
 
 Assets.bg.src = 'assets/sprites/background-day.png';
 Assets.base.src = 'assets/sprites/base.png';
-Assets.bird.src = 'assets/sprites/yellowbird-midflap.png';
+Assets.birdFrames[0].src = 'assets/sprites/yellowbird-downflap.png';
+Assets.birdFrames[1].src = 'assets/sprites/yellowbird-midflap.png';
+Assets.birdFrames[2].src = 'assets/sprites/yellowbird-upflap.png';
 Assets.pipe.src = 'assets/sprites/pipe-green.png';
-Assets.gameOver.src = 'assets/sprites/gameover.png';
+Assets.message.src = 'assets/sprites/message.png'
+Assets.scoreboard.src = 'assets/sprites/scoreboard.png';
+Assets.medalBronze.src = 'assets/sprites/medal_bronze.png';
+Assets.medalSilver.src = 'assets/sprites/medal_silver.png';
+Assets.medalGold.src = 'assets/sprites/medal_gold.png';
+Assets.medalPlatinum.src = 'assets/sprites/medal_platinum.png';
+Assets.replay.src = 'assets/sprites/replay.png';
 
 for(let i = 0; i <= 9; i++){
     let img = new Image();
@@ -48,10 +62,16 @@ export function preloadAssets(){
     const all = [
         Assets.bg,
         Assets.base,
-        Assets.bird,
+        ...Assets.birdFrames,
         Assets.pipe,
-        Assets.gameOver,
-        ...Assets.numbers
+        Assets.message,
+        ...Assets.numbers,
+        Assets.scoreboard,
+        Assets.medalBronze,
+        Assets.medalSilver,
+        Assets.medalGold,
+        Assets.medalPlatinum,
+        Assets.replay
     ];
     return Promise.all(all.map(img => img.decode().catch(() => {})));
 
@@ -60,4 +80,15 @@ export function preloadAssets(){
 export function playSound(sound){
     sound.currentTime = 0;
     sound.play().catch(() => {});
+}
+
+const HIGH_SCORE_KEY = 'flappyBird.highScore';
+
+export function getHighScore(){
+    const stored = localStorage.getItem(HIGH_SCORE_KEY);
+    return stored ? parseInt(stored) : 0;
+}
+
+export function saveHighScore(score){
+    localStorage.setItem(HIGH_SCORE_KEY, score.toString());
 }
