@@ -13,7 +13,6 @@ export class Bird {
         this.frameSequence = [0,1,2,1];
         this.frameIndex = 0;
         this.animationTimer = 0;
-        this.frameDuration = 0.1;
     }
 
     flap(){

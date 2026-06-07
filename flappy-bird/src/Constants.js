@@ -7,7 +7,7 @@ export const GameState = Object.freeze({
 export const Assets = {
     bg: new Image(),
     base: new Image(),
-    birdFrames: [new Image(), new Image(), new Image()],   // ← teraz lista
+    birdFrames: [new Image(), new Image(), new Image()],
     pipe: new Image(),
     message: new Image(),
     numbers: [],

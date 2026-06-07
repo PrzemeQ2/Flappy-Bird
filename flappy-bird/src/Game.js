@@ -2,6 +2,9 @@ import { GameState, Assets, PhysParams, playSound, Sounds, getHighScore, saveHig
 import { Bird } from './Bird.js';
 import { PipePair } from './Pipe.js';
 
+const GAME_OVER_ANIM = 0.45;
+const GAME_OVER_SLIDE = 90;
+
 function nextPipeY(prevY) {
     let lower = Math.max(PhysParams.PIPE_Y_MIN, prevY - PhysParams.PIPE_Y_DELTA_MAX);
     let upper = Math.min(PhysParams.PIPE_Y_MAX, prevY + PhysParams.PIPE_Y_DELTA_MAX);
@@ -26,10 +29,19 @@ export class Game {
         let firstPipeY = Math.floor(Math.random() * (PhysParams.PIPE_Y_MAX - PhysParams.PIPE_Y_MIN)) + PhysParams.PIPE_Y_MIN ;
         this.pipes.push(new PipePair(this.canvas.width, firstPipeY, this.canvas.width));
         this.baseOffset = 0;
+        this.gameOverTimer = 0;
+        this.inputLocked = false;
+    }
+
+    startGameOver() {
+        this.gameOverTimer = GAME_OVER_ANIM;
+        this.inputLocked = true;
     }
 
     setupInputs() {
         const flapAction = () => {
+            if (this.inputLocked) return;
+
             if (this.state === GameState.START) {
                 this.state = GameState.PLAYING;
                 this.bird.flap();
@@ -41,7 +53,6 @@ export class Game {
             }
         };
 
-        let isTouchDevice = false;
         window.addEventListener('keydown',
             (e) => {
                     if (e.code === 'Space') {
@@ -59,6 +70,14 @@ export class Game {
     }
 
     update(dt) {
+        if (this.gameOverTimer > 0) {
+            this.gameOverTimer -= dt;
+            if (this.gameOverTimer <= 0) {
+                this.gameOverTimer = 0;
+                this.inputLocked = false;
+            }
+        }
+
         this.bird.update(this.state, this.canvas.height, dt);
 
         if(this.state !== GameState.END){
@@ -73,6 +92,7 @@ export class Game {
             if (this.state !== GameState.END) {
                 playSound(Sounds.die);
                 this.checkAndSaveHighScore();
+                this.startGameOver();
             }
             this.state = GameState.END;
             this.bird.y = this.canvas.height - 112 - this.bird.height;
@@ -92,6 +112,7 @@ export class Game {
                     if(this.state !== GameState.END){
                         playSound(Sounds.hit);
                         this.checkAndSaveHighScore();
+                        this.startGameOver();
                     }
                     this.state = GameState.END;
                 }
@@ -140,6 +161,14 @@ export class Game {
         }
 
         if (this.state === GameState.END) {
+            const progress = 1 - this.gameOverTimer / GAME_OVER_ANIM;
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const slide = (1 - eased) * GAME_OVER_SLIDE;
+
+            this.ctx.save();
+            this.ctx.globalAlpha = eased;
+            this.ctx.translate(0, slide);
+
             const sbX = (this.canvas.width - Assets.scoreboard.width) / 2;
             const sbY = 60;
             this.ctx.drawImage(Assets.scoreboard, sbX, sbY);
@@ -154,6 +183,12 @@ export class Game {
             const numbersCenterX = sbX + 210;
             this.drawNumber(this.score,     numbersCenterX, sbY + 105 , 0.5, 'right');
             this.drawNumber(this.highScore, numbersCenterX, sbY + 145, 0.5, 'right');
+
+            const replayX = (this.canvas.width - Assets.replay.width) / 2;
+            const replayY = sbY + Assets.scoreboard.height - 65;
+            this.ctx.drawImage(Assets.replay, replayX, replayY);
+
+            this.ctx.restore();
         }
 
 
