@@ -30,6 +30,6 @@ cd flappy-bird
 python -m http.server 8000
 ```
 
-Następnie otwórz w przeglądarce adres **<http://localhost:8000>**.
+Następnie otwórz w przeglądarce adres **<http://localhost:8000/flappy-bird/>**.
 
 Aby zatrzymać serwer, wciśnij `Ctrl+C` w terminalu.
